@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -194,7 +193,9 @@
       line-height: 1.4;
     }
 
-    #modal-content button {
+    #modal-action-btn {
+      display: inline-block;
+      text-decoration: none;
       background-color: var(--green);
       color: white;
       border: none;
@@ -257,7 +258,7 @@
     <div id="modal-content">
       <h2 id="modal-title">Bravo ! 🎉</h2>
       <p id="modal-msg"></p>
-      <button id="modal-btn" onclick="location.reload()">Rejouer</button>
+      <a id="modal-action-btn" href="#">Action</a>
     </div>
   </div>
 
@@ -265,6 +266,7 @@
     const TARGET_WORD = "DATEMOI";
     const WORD_LENGTH = TARGET_WORD.length;
     const MAX_ATTEMPTS = 6;
+    const INSTA_URL = "https://www.instagram.com/sam.hed/";
 
     let currentRow = 0;
     let currentTile = 0;
@@ -392,16 +394,25 @@
       const modal = document.getElementById("modal");
       const title = document.getElementById("modal-title");
       const msg = document.getElementById("modal-msg");
-      const btn = document.getElementById("modal-btn");
+      const btn = document.getElementById("modal-action-btn");
 
       if (won) {
         title.textContent = "C'est validé ! 💚";
         msg.textContent = "Regarde ce que j'ai fait à 40% donc imagine si j'ai ton insta 😉";
-        btn.textContent = "Rejouer";
+        btn.textContent = "Viens me DM";
+        btn.href = INSTA_URL;
+        btn.target = "_blank";
+        btn.onclick = null;
       } else {
         title.textContent = "Raté pour cette fois ! 🙈";
         msg.textContent = "Tu n'as pas trouvé le mot mystère... Il va falloir retenter ta chance !";
         btn.textContent = "Réessayer";
+        btn.removeAttribute("target");
+        btn.href = "#";
+        btn.onclick = (e) => {
+          e.preventDefault();
+          location.reload();
+        };
       }
       modal.style.display = "flex";
     }
