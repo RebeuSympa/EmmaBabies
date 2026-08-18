@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wordle - Date Moi ?</title>
+  <style>
+    :root {
+      --bg: #121213;
+      --card-bg: #1a1a1b;
+      --border-empty: #3a3a3c;
+      --border-active: #565758;
+      --text: #ffffff;
+      --green: #538d4e;
+      --yellow: #b59f3b;
+      --gray: #3a3a3c;
+      --key-bg: #818384;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      height: 100vh;
+      height: 100dvh;
+      padding: 10px;
+    }
+
+    header {
+      text-align: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-empty);
+      width: 100%;
+      max-width: 480px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* Grille de jeu */
+    #board-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-grow: 1;
+      width: 100%;
+    }
+
+    #board {
+      display: grid;
+      grid-template-rows: repeat(6, 1fr);
+      gap: 5px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .tile {
+      aspect-ratio: 1;
+      border: 2px solid var(--border-empty);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.25rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      transition: transform 0.25s;
+    }
+
+    .tile.active {
+      border-color: var(--border-active);
+      animation: pop 0.1s ease-in-out;
+    }
+
+    /* Clavier virtuel */
+    #keyboard {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .keyboard-row {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      touch-action: manipulation;
+    }
+
+    .key {
+      background-color: var(--key-bg);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 4px;
+      height: 48px;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    .key.large {
+      flex: 1.5;
+      font-size: 0.75rem;
+    }
+
+    /* Couleurs de validation */
+    .correct {
+      background-color: var(--green) !important;
+      border-color: var(--green) !important;
+    }
+
+    .present {
+      background-color: var(--yellow) !important;
+      border-color: var(--yellow) !important;
+    }
+
+    .absent {
+      background-color: var(--gray) !important;
+      border-color: var(--gray) !important;
+    }
+
+    /* Animations */
+    @keyframes pop {
+      50% { transform: scale(1.1); }
+    }
+
+    .flip {
+      animation: flip-tile 0.5s ease forwards;
+    }
+
+    @keyframes flip-tile {
+      0% { transform: rotateX(0); }
+      50% { transform: rotateX(90deg); }
+      100% { transform: rotateX(0); }
+    }
+
+    /* Modal / Popup de fin */
+    #modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 10;
+    }
+
+    #modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--border-empty);
+      border-radius: 10px;
+      padding: 24px;
+      text-align: center;
+      max-width: 320px;
+      animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #modal-content h2 {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+
+    #modal-content p {
+      font-size: 1rem;
+      color: #d7dadc;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    #modal-content button {
+      background-color: var(--green);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Wordle</h1>
+  </header>
+
+  <div id="board-container">
+    <div id="board"></div>
+  </div>
+
+  <div id="keyboard">
+    <div class="keyboard-row">
+      <button class="key" data-key="A">A</button>
+      <button class="key" data-key="Z">Z</button>
+      <button class="key" data-key="E">E</button>
+      <button class="key" data-key="R">R</button>
+      <button class="key" data-key="T">T</button>
+      <button class="key" data-key="Y">Y</button>
+      <button class="key" data-key="U">U</button>
+      <button class="key" data-key="I">I</button>
+      <button class="key" data-key="O">O</button>
+      <button class="key" data-key="P">P</button>
+    </div>
+    <div class="keyboard-row">
+      <button class="key" data-key="Q">Q</button>
+      <button class="key" data-key="S">S</button>
+      <button class="key" data-key="D">D</button>
+      <button class="key" data-key="F">F</button>
+      <button class="key" data-key="G">G</button>
+      <button class="key" data-key="H">H</button>
+      <button class="key" data-key="J">J</button>
+      <button class="key" data-key="K">K</button>
+      <button class="key" data-key="L">L</button>
+      <button class="key" data-key="M">M</button>
+    </div>
+    <div class="keyboard-row">
+      <button class="key large" data-key="ENTER">ENTRER</button>
+      <button class="key" data-key="W">W</button>
+      <button class="key" data-key="X">X</button>
+      <button class="key" data-key="C">C</button>
+      <button class="key" data-key="V">V</button>
+      <button class="key" data-key="B">B</button>
+      <button class="key" data-key="N">N</button>
+      <button class="key large" data-key="BACKSPACE">⌫</button>
+    </div>
+  </div>
+
+  <div id="modal">
+    <div id="modal-content">
+      <h2 id="modal-title">Bravo ! 🎉</h2>
+      <p id="modal-msg"></p>
+      <button id="modal-btn" onclick="location.reload()">Rejouer</button>
+    </div>
+  </div>
+
+  <script>
+    const TARGET_WORD = "DATEMOI";
+    const WORD_LENGTH = TARGET_WORD.length;
+    const MAX_ATTEMPTS = 6;
+
+    let currentRow = 0;
+    let currentTile = 0;
+    let currentGuess = "";
+    let isGameOver = false;
+
+    const board = document.getElementById("board");
+
+    // Création du plateau (6 rangées de 7 cases)
+    for (let r = 0; r < MAX_ATTEMPTS; r++) {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.id = `row-${r}`;
+      for (let c = 0; c < WORD_LENGTH; c++) {
+        const tile = document.createElement("div");
+        tile.className = "tile";
+        tile.id = `tile-${r}-${c}`;
+        row.appendChild(tile);
+      }
+      board.appendChild(row);
+    }
+
+    // Gestion des entrées
+    function handleKey(key) {
+      if (isGameOver) return;
+
+      if (key === "ENTER") {
+        submitGuess();
+      } else if (key === "BACKSPACE" || key === "DELETE") {
+        deleteLetter();
+      } else if (/^[A-Z]$/.test(key) && currentGuess.length < WORD_LENGTH) {
+        addLetter(key);
+      }
+    }
+
+    function addLetter(letter) {
+      currentGuess += letter;
+      const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
+      tile.textContent = letter;
+      tile.classList.add("active");
+      currentTile++;
+    }
+
+    function deleteLetter() {
+      if (currentTile === 0) return;
+      currentTile--;
+      currentGuess = currentGuess.slice(0, -1);
+      const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
+      tile.textContent = "";
+      tile.classList.remove("active");
+    }
+
+    function submitGuess() {
+      if (currentGuess.length < WORD_LENGTH) {
+        alert("Le mot doit faire 7 lettres !");
+        return;
+      }
+
+      const rowTiles = document.getElementById(`row-${currentRow}`).children;
+      let targetLetters = TARGET_WORD.split("");
+      let guessLetters = currentGuess.split("");
+      let statuses = Array(WORD_LENGTH).fill("absent");
+
+      // Vérification des lettres vertes (bien placées)
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        if (guessLetters[i] === targetLetters[i]) {
+          statuses[i] = "correct";
+          targetLetters[i] = null;
+        }
+      }
+
+      // Vérification des lettres jaunes (mal placées)
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        if (statuses[i] !== "correct") {
+          const indexInTarget = targetLetters.indexOf(guessLetters[i]);
+          if (indexInTarget !== -1) {
+            statuses[i] = "present";
+            targetLetters[indexInTarget] = null;
+          }
+        }
+      }
+
+      // Révélation animée
+      for (let i = 0; i < WORD_LENGTH; i++) {
+        setTimeout(() => {
+          const tile = rowTiles[i];
+          const letter = guessLetters[i];
+          const status = statuses[i];
+
+          tile.classList.add("flip", status);
+          updateKeyboard(letter, status);
+
+          // Fin de vérification sur la dernière lettre
+          if (i === WORD_LENGTH - 1) {
+            if (currentGuess === TARGET_WORD) {
+              setTimeout(() => showModal(true), 500);
+              isGameOver = true;
+            } else if (currentRow === MAX_ATTEMPTS - 1) {
+              setTimeout(() => showModal(false), 500);
+              isGameOver = true;
+            } else {
+              currentRow++;
+              currentTile = 0;
+              currentGuess = "";
+            }
+          }
+        }, i * 250);
+      }
+    }
+
+    function updateKeyboard(letter, status) {
+      const keyBtn = document.querySelector(`.key[data-key="${letter}"]`);
+      if (!keyBtn) return;
+
+      if (status === "correct") {
+        keyBtn.className = "key correct";
+      } else if (status === "present" && !keyBtn.classList.contains("correct")) {
+        keyBtn.className = "key present";
+      } else if (status === "absent" && !keyBtn.classList.contains("correct") && !keyBtn.classList.contains("present")) {
+        keyBtn.className = "key absent";
+      }
+    }
+
+    function showModal(won) {
+      const modal = document.getElementById("modal");
+      const title = document.getElementById("modal-title");
+      const msg = document.getElementById("modal-msg");
+      const btn = document.getElementById("modal-btn");
+
+      if (won) {
+        title.textContent = "C'est validé ! 💚";
+        msg.textContent = "Regarde ce que j'ai fait à 40% donc imagine si j'ai ton insta 😉";
+        btn.textContent = "Rejouer";
+      } else {
+        title.textContent = "Raté pour cette fois ! 🙈";
+        msg.textContent = "Tu n'as pas trouvé le mot mystère... Il va falloir retenter ta chance !";
+        btn.textContent = "Réessayer";
+      }
+      modal.style.display = "flex";
+    }
+
+    // Écouteur clavier physique
+    window.addEventListener("keydown", (e) => {
+      handleKey(e.key.toUpperCase());
+    });
+
+    // Écouteur clavier virtuel
+    document.getElementById("keyboard").addEventListener("click", (e) => {
+      if (e.target.matches("button.key")) {
+        const key = e.target.getAttribute("data-key");
+        handleKey(key);
+      }
+    });
+  </script>
+</body>
+</html>
